@@ -28,5 +28,5 @@ pub fn vis(_input: String, _output: String, _: usize) -> Ret {
 
 #[wasm_bindgen]
 pub fn get_max_turn(_input: String, _output: String) -> usize {
-    1
+    0
 }

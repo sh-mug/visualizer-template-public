@@ -3,7 +3,6 @@ use proconio::input;
 use rand::prelude::*;
 use std::collections::BTreeSet;
 use svg::node::element::{Rectangle, Style};
-use web_sys::console::log_1;
 
 #[derive(Clone, Debug)]
 pub struct Input {
@@ -76,24 +75,41 @@ pub fn gen(seed: u64) -> Input {
     Input { n, xyr }
 }
 
-fn calculate_score(input: &Input, output: &Output) -> usize {
+// (score, each rectangle's error, error message)
+fn calculate_score(input: &Input, output: &Output) -> (usize, Vec<bool>, String) {
     // score is sum for each i of
     //  if rectangle (ai, bi) -- (ci, di) does not contain (xi+0.5, yi+0.5) then 0
     //  else, let si be the space of the rectangle (ai, bi) -- (ci, di),
     //   then 1-(1-min(ri,si)/max(ri,si))^2
-    log_1(&format!("{:?}", input).into());
-    let mut score = 0f64;
+    let mut score_raw = 0f64;
+    let mut errors = vec![false; input.n];
+    let mut error_message = "".to_string();
     for i in 0..input.n {
         let (x, y, r) = input.xyr[i];
         let (a, b, c, d) = output.abcd[i];
-        score += if a <= x && x <= c && b <= y && y <= d {
+        score_raw += if a <= x && x <= c && b <= y && y <= d {
             let s = ((c - a) * (d - b)) as f64;
             1f64 - (1f64 - (s.min(r as f64) / s.max(r as f64))).powi(2)
         } else {
+            errors[i] = true;
+            error_message = format!("rectangle {} does not contain point ({}, {})", i, x, y);
             0f64
         };
     }
-    (1e9 * score / input.n as f64).round() as usize
+    for i in 0..input.n {
+        for j in i + 1..input.n {
+            let (a, b, c, d) = output.abcd[i];
+            let (e, f, g, h) = output.abcd[j];
+            // if rectangle i and j are intersected, then error
+            if a < g && e < c && b < h && f < d {
+                errors[i] = true;
+                errors[j] = true;
+                error_message = format!("rectangle {} and {} are intersected", i, j);
+            }
+        }
+    }
+    let score = (1e9 * score_raw / input.n as f64).round() as usize;
+    (score, errors, error_message)
 }
 
 fn generate_color(s: usize, r: usize) -> String {
@@ -111,7 +127,7 @@ pub fn rect(x: f32, y: f32, w: f32, h: f32, fill: &str) -> Rectangle {
 }
 
 pub fn vis(input: &Input, output: &Output) -> (i64, String, String) {
-    let score = calculate_score(input, output);
+    let (score, errors, error_message) = calculate_score(input, output);
 
     let W = 1000;
     let H = 1000;
@@ -132,21 +148,31 @@ pub fn vis(input: &Input, output: &Output) -> (i64, String, String) {
         // draw rectangle (a, b) -- (c, d)
         let s = (c - a) * (d - b);
         let rect_color = generate_color(s, r);
-        doc = doc.add(rect(
-            a as f32 * 0.1,
-            b as f32 * 0.1,
-            (c - a) as f32 * 0.1,
-            (d - b) as f32 * 0.1,
-            &rect_color,
-        ));
+        doc = doc.add(
+            rect(
+                a as f32 * 0.1,
+                b as f32 * 0.1,
+                (c - a) as f32 * 0.1,
+                (d - b) as f32 * 0.1,
+                &rect_color,
+            )
+            .set("stroke", "black")
+            .set("stroke-width", 1)
+            .set("class", "box"),
+        );
         // draw point (x, y)
-        doc = doc.add(rect(
-            (x as f32 + 0.5) * 0.1 - 2.5,
-            (y as f32 + 0.5) * 0.1 - 2.5,
-            5.0,
-            5.0,
-            "black",
-        ));
+        doc = doc.add(
+            rect(
+                (x as f32 + 0.5) * 0.1 - 2.5,
+                (y as f32 + 0.5) * 0.1 - 2.5,
+                5.0,
+                5.0,
+                if errors[i] { "red" } else { "green" },
+            )
+            .set("stroke", "black")
+            .set("stroke-width", 1)
+            .set("class", "box"),
+        );
         // draw line (x, y) -- ((a+c)/2, (b+d)/2)
         doc = doc.add(
             svg::node::element::Line::new()
@@ -159,5 +185,5 @@ pub fn vis(input: &Input, output: &Output) -> (i64, String, String) {
         );
     }
 
-    (score as i64, "".to_string(), doc.to_string())
+    (score as i64, error_message.to_string(), doc.to_string())
 }
