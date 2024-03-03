@@ -1,10 +1,12 @@
 #![allow(non_snake_case, unused_macros)]
-use proconio::input;
-use rand::prelude::*;
-use std::collections::VecDeque;
-use svg::node::element::{Group, Rectangle, Style, Title};
+use svg::node::element::{Group, Rectangle, Style, Title, Text};
 use svg::node::Text as SvgText;
-use web_sys::console::log_1;
+// use web_sys::console::log_1;
+use itertools::Itertools;
+use proconio::{input, marker::Chars};
+use rand::prelude::*;
+use std::ops::RangeBounds;
+use std::cmp::min;
 
 pub trait SetMinMax {
     fn setmin(&mut self, v: Self) -> bool;
@@ -28,19 +30,34 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! mat {
+	($($e:expr),*) => { Vec::from(vec![$($e),*]) };
+	($($e:expr,)*) => { Vec::from(vec![$($e),*]) };
+	($e:expr; $d:expr) => { Vec::from(vec![$e; $d]) };
+	($e:expr; $d:expr $(; $ds:expr)+) => { Vec::from(vec![mat![$e $(; $ds)*]; $d]) };
+}
+
 #[derive(Clone, Debug)]
 pub struct Input {
-    pub id: usize,
+    pub ty: u64,
     pub n: usize,
-    pub k: usize,
-    pub s: Vec<String>,
+    pub a: Vec<Vec<i32>>,
+    pub vs: Vec<Vec<char>>,
+    pub hs: Vec<Vec<char>>,
 }
 
 impl std::fmt::Display for Input {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{} {} {}", self.id, self.n, self.k)?;
+        writeln!(f, "{} {}", self.ty, self.n)?;
         for i in 0..self.n {
-            writeln!(f, "{}", self.s[i])?;
+            writeln!(f, "{}", self.vs[i].iter().collect::<String>())?;
+        }
+        for i in 0..self.n - 1 {
+            writeln!(f, "{}", self.hs[i].iter().collect::<String>())?;
+        }
+        for i in 0..self.n {
+            writeln!(f, "{}", self.a[i].iter().join(" "))?;
         }
         Ok(())
     }
@@ -50,109 +67,213 @@ pub fn parse_input(f: &str) -> Input {
     let f = proconio::source::once::OnceSource::from(f);
     input! {
         from f,
-        id:usize,
-        n: usize,
-        k: usize,
-        s: [String; n]
+        ty: u64, n: usize,
+        vs: [Chars; n],
+        hs: [Chars; n - 1],
+        a: [[i32; n]; n],
     }
-    Input { id, n, k, s }
+    Input { ty, n, a, vs, hs }
 }
 
-pub struct Output {
-    pub q: usize,
-    pub yxc: Vec<(usize, usize, usize)>,
-}
-
-pub fn parse_output(f: &str) -> Output {
+pub fn parse_input_fixed(f: &str) -> Input {
     let f = proconio::source::once::OnceSource::from(f);
     input! {
         from f,
-        q: usize,
-        yxc: [(usize, usize, usize); q]
+        ty: u64, n: usize,
+        vs: [Chars; n],
+        hs: [Chars; n - 1],
     }
-    Output { q, yxc }
+    for i in 0..n {
+        assert_eq!(vs[i].len(), n - 1);
+    }
+    for i in 0..n - 1 {
+        assert_eq!(hs[i].len(), n);
+    }
+    Input {
+        ty,
+        n,
+        a: vec![],
+        vs,
+        hs,
+    }
 }
+
+pub fn read<T: Copy + PartialOrd + std::fmt::Display + std::str::FromStr, R: RangeBounds<T>>(
+    token: Option<&str>,
+    range: R,
+) -> Result<T, String> {
+    if let Some(v) = token {
+        if let Ok(v) = v.parse::<T>() {
+            if !range.contains(&v) {
+                Err(format!("Out of range: {}", v))
+            } else {
+                Ok(v)
+            }
+        } else {
+            Err(format!("Parse error: {}", v))
+        }
+    } else {
+        Err("Unexpected EOF".to_owned())
+    }
+}
+
+const DIRS: [char; 4] = ['U', 'D', 'L', 'R'];
+const DIJ: [(usize, usize); 4] = [(!0, 0), (1, 0), (0, !0), (0, 1)];
+
+pub struct Output {
+    pub start: (usize, usize, usize, usize),
+    pub out: Vec<(bool, usize, usize)>,
+}
+
+pub fn parse_output(input: &Input, f: &str) -> Result<Output, String> {
+    let mut out = vec![];
+    let mut ss = f.split_whitespace();
+    let start = (
+        read(ss.next(), 0..input.n)?,
+        read(ss.next(), 0..input.n)?,
+        read(ss.next(), 0..input.n)?,
+        read(ss.next(), 0..input.n)?,
+    );
+    while let Some(mv) = ss.next() {
+        let do_swap = if mv == "1" {
+            true
+        } else if mv != "0" {
+            return Err(format!("Invalid action: {}", mv));
+        } else {
+            false
+        };
+        let dir1 = read(ss.next(), '.'..='Z')?;
+        let dir2 = read(ss.next(), '.'..='Z')?;
+        let dir1 = if dir1 == '.' {
+            !0
+        } else if let Some(dir1) = DIRS.iter().position(|&d| d == dir1) {
+            dir1
+        } else {
+            return Err(format!("Invalid direction: {}", dir1));
+        };
+        let dir2 = if dir2 == '.' {
+            !0
+        } else if let Some(dir2) = DIRS.iter().position(|&d| d == dir2) {
+            dir2
+        } else {
+            return Err(format!("Invalid direction: {}", dir2));
+        };
+        out.push((do_swap, dir1, dir2));
+    }
+    if out.len() > 4 * input.n * input.n {
+        return Err("Too many actions".to_owned());
+    }
+    Ok(Output { start, out })
+}
+
+const FIXED: [&'static str; 20] = [
+    include_str!("../in_fixed/0.txt"),
+    include_str!("../in_fixed/1.txt"),
+    include_str!("../in_fixed/2.txt"),
+    include_str!("../in_fixed/3.txt"),
+    include_str!("../in_fixed/4.txt"),
+    include_str!("../in_fixed/5.txt"),
+    include_str!("../in_fixed/6.txt"),
+    include_str!("../in_fixed/7.txt"),
+    include_str!("../in_fixed/8.txt"),
+    include_str!("../in_fixed/9.txt"),
+    include_str!("../in_fixed/10.txt"),
+    include_str!("../in_fixed/11.txt"),
+    include_str!("../in_fixed/12.txt"),
+    include_str!("../in_fixed/13.txt"),
+    include_str!("../in_fixed/14.txt"),
+    include_str!("../in_fixed/15.txt"),
+    include_str!("../in_fixed/16.txt"),
+    include_str!("../in_fixed/17.txt"),
+    include_str!("../in_fixed/18.txt"),
+    include_str!("../in_fixed/19.txt"),
+];
 
 pub fn gen(seed: u64) -> Input {
     let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(seed);
-    let id = seed;
-    let n = 100;
-    let k = 9;
-    let s = (0..n)
-        .map(|_| {
-            (0..n)
-                .map(|_| rng.gen_range(1, k + 1).to_string())
-                .collect::<String>()
-        })
-        .collect::<Vec<_>>();
-    Input { id: 0, n, k, s }
+    let ty = seed % 20;
+    let mut input = parse_input_fixed(FIXED[ty as usize]);
+    let mut nums = (1..=input.n * input.n).collect_vec();
+    nums.shuffle(&mut rng);
+    input.a = mat![0; input.n; input.n];
+    for i in 0..input.n {
+        for j in 0..input.n {
+            input.a[i][j] = nums[i * input.n + j] as i32;
+        }
+    }
+    input
 }
 
-fn calculate_score(input: &Input, yxc: &Vec<(usize, usize, usize)>) -> (usize, Vec<Vec<usize>>) {
-    let mut state = vec![vec![0; input.n]; input.n];
-    input.s.iter().enumerate().for_each(|(y, s)| {
-        s.chars()
-            .enumerate()
-            .for_each(|(x, c)| state[y][x] = c.to_digit(10).unwrap() as usize)
-    });
+fn can_move(N: usize, h: &Vec<Vec<char>>, v: &Vec<Vec<char>>, i: usize, j: usize, dir: usize) -> bool {
+    let (di, dj) = DIJ[dir];
+    let i2 = i + di;
+    let j2 = j + dj;
+    if i2 >= N || j2 >= N {
+        return false;
+    }
+    if di == 0 {
+        v[i][j.min(j2)] == '0'
+    } else {
+        h[i.min(i2)][j] == '0'
+    }
+}
 
-    let x_vec: Vec<i32> = vec![0, 1, 0, -1];
-    let y_vec: Vec<i32> = vec![-1, 0, 1, 0];
+pub fn compute_score(input: &Input, out: &Output) -> (i64, String) {
+    let (mut score, err, _) = compute_score_details(input, out.start, &out.out);
+    if err.len() > 0 {
+        score = 0;
+    }
+    (score, err)
+}
 
-    for (y, x, c) in yxc {
-        // state[*y][*x] = *c;
-        let selected_color = state[*y - 1][*x - 1];
-
-        let mut visited = vec![vec![false; input.n]; input.n];
-        let mut queue: VecDeque<(usize, usize)> = VecDeque::new();
-        queue.push_back((*y - 1, *x - 1));
-
-        let mut count = 0;
-
-        while queue.len() > 0 {
-            let (ypos, xpos) = queue.pop_front().unwrap();
-            if visited[ypos][xpos] {
-                continue;
-            }
-            visited[ypos][xpos] = true;
-            state[ypos][xpos] = *c;
-
-            count = count + 1;
-            for i in 0..4 {
-                let nx = xpos as i32 + x_vec[i];
-                let ny = ypos as i32 + y_vec[i];
-                if nx < 0 || ny < 0 || nx >= input.n as i32 || ny >= input.n as i32 {
-                    continue;
+fn compute_diff(input: &Input, a: &Vec<Vec<i32>>) -> i64 {
+    let mut diff = 0;
+    for i in 0..input.n {
+        for j in 0..input.n {
+            for dir in 1..=2 {
+                if can_move(input.n, &input.hs, &input.vs, i, j, dir) {
+                    let d = (a[i][j] - a[i + DIJ[dir].0][j + DIJ[dir].1]) as i64;
+                    diff += d * d;
                 }
-                let nx = nx as usize;
-                let ny = ny as usize;
-                if visited[ny][nx] {
-                    continue;
-                }
-
-                if state[ny][nx] != selected_color {
-                    continue;
-                }
-                queue.push_back((ny, nx));
             }
         }
     }
+    diff
+}
 
-    let mut score = 0;
-    for color in 1..(input.k + 1) {
-        let mut tmp_score = 0;
-        for y in 0..input.n {
-            for x in 0..input.n {
-                if state[y][x] == color {
-                    tmp_score += 100;
-                }
-            }
+pub fn compute_score_details(
+    input: &Input,
+    start: (usize, usize, usize, usize),
+    out: &[(bool, usize, usize)],
+) -> (i64, String, (Vec<Vec<i32>>, (usize, usize), (usize, usize))) {
+    let mut a = input.a.clone();
+    let mut p1 = (start.0, start.1);
+    let mut p2 = (start.2, start.3);
+    let before = compute_diff(&input, &a);
+    for &(do_swap, dir1, dir2) in out {
+        if do_swap {
+            let tmp = a[p1.0][p1.1];
+            a[p1.0][p1.1] = a[p2.0][p2.1];
+            a[p2.0][p2.1] = tmp;
         }
-        score = score.max(tmp_score);
+        if dir1 != !0 {
+            if !can_move(input.n, &input.hs, &input.vs, p1.0, p1.1, dir1) {
+                return (0, format!("Invalid move: {}", DIRS[dir1]), (a, p1, p2));
+            }
+            p1.0 += DIJ[dir1].0;
+            p1.1 += DIJ[dir1].1;
+        }
+        if dir2 != !0 {
+            if !can_move(input.n, &input.hs, &input.vs, p2.0, p2.1, dir2) {
+                return (0, format!("Invalid move: {}", DIRS[dir2]), (a, p1, p2));
+            }
+            p2.0 += DIJ[dir2].0;
+            p2.1 += DIJ[dir2].1;
+        }
     }
-    score -= yxc.len();
-
-    return (score, state);
+    let after = compute_diff(&input, &a);
+    let score = ((1e6 * (f64::log2(before as f64) - f64::log2(after as f64))).round() as i64).max(1);
+    (score, String::new(), (a, p1, p2))
 }
 
 pub fn rect(x: usize, y: usize, w: usize, h: usize, fill: &str) -> Rectangle {
@@ -169,13 +290,12 @@ fn group(title: String) -> Group {
 }
 
 pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String) {
-    let (score, state) =
-        calculate_score(input, &output.yxc[0..turn].into_iter().cloned().collect());
+    let (score, err, (state, p1, p2)) = compute_score_details(input, output.start, &output.out[..turn]);
 
-    let W = 800;
-    let H = 800;
-    let w = 8;
-    let h = 8;
+    let w = min(30, 1000 / input.n);
+    let h = min(30, 1000 / input.n);
+    let W = input.n * w;
+    let H = input.n * h;
     let mut doc = svg::Document::new()
         .set("id", "vis")
         .set("viewBox", (-5, -5, W + 10, H + 10))
@@ -189,35 +309,129 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
     )));
     for y in 0..input.n {
         for x in 0..input.n {
-            doc = doc.add(
+            let mut grp = group(format!("a[{}][{}]={}", y, x, state[y][x]));
+            grp = grp.add(
                 rect(
                     x * w,
-                    W - (y + 1) * h,
+                    y * h,
                     w,
                     h,
-                    &format!("hsv({}, 100%, {}%)", state[y][x] * 360 / input.k, 100),
+                    "white"
                 )
-                .set("stroke", "black")
+                .set("stroke", "lightgray")
                 .set("stroke-width", 1)
                 .set("class", "box"),
+            );
+            doc = doc.add(grp);
+            doc = doc.add(
+                Text::new()
+                    .set("x", x * w + w / 2)
+                    .set("y", y * h + h / 2)
+                    .set("font-size", w / 3)
+                    .add(svg::node::Text::new(state[y][x].to_string())),
             );
         }
     }
 
-    // let mut grp = group(format!("{}: ({} {}) -- ({} {})", i, a, b, c, d));
-    // grp = grp.add(
-    //     rect(
-    //         a as f32 * 0.1,
-    //         b as f32 * 0.1,
-    //         (c - a) as f32 * 0.1,
-    //         (d - b) as f32 * 0.1,
-    //         &rect_color,
-    //     )
-    //     .set("stroke", "black")
-    //     .set("stroke-width", 1)
-    //     .set("class", "box"),
-    // );
-    // doc = doc.add(grp);
+    // wall
+    for y in 0..input.n - 1 {
+        for x in 0..input.n {
+            if input.hs[y][x] == '1' {
+                doc = doc.add(
+                    rect(
+                        x * w,
+                        (y + 1) * h,
+                        w,
+                        1,
+                        "black"
+                    )
+                    .set("class", "wall"),
+                );
+            }
+        }
+    }
+    for y in 0..input.n {
+        for x in 0..input.n - 1 {
+            if input.vs[y][x] == '1' {
+                doc = doc.add(
+                    rect(
+                        (x + 1) * w,
+                        y * h,
+                        1,
+                        h,
+                        "black"
+                    )
+                    .set("class", "wall"),
+                );
+            }
+        }
+    }
 
-    (score as i64, "".to_string(), doc.to_string())
+    // 外周も壁
+    doc = doc.add(
+        rect(
+            0,
+            0,
+            W,
+            1,
+            "black"
+        )
+        .set("class", "wall"),
+    );
+    doc = doc.add(
+        rect(
+            0,
+            H - 1,
+            W,
+            1,
+            "black"
+        )
+        .set("class", "wall"),
+    );
+    doc = doc.add(
+        rect(
+            0,
+            0,
+            1,
+            H,
+            "black"
+        )
+        .set("class", "wall"),
+    );
+    doc = doc.add(
+        rect(
+            W - 1,
+            0,
+            1,
+            H,
+            "black"
+        )
+        .set("class", "wall"),
+    );
+
+    // p1: Takahashi
+    doc = doc.add(
+        rect(
+            p1.1 * w,
+            p1.0 * h,
+            w,
+            h,
+            "lightgreen"
+        )
+        .set("fill-opacity", 0.5)
+    );
+
+    // p2: Aoki
+    doc = doc.add(
+        rect(
+            p2.1 * w,
+            p2.0 * h,
+            w,
+            h,
+            "lightblue"
+        )
+        .set("fill-opacity", 0.5)
+    );
+
+    (score, err, doc.to_string())
 }
