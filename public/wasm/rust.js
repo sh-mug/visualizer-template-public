@@ -167,6 +167,19 @@ export class Ret {
         wasm.__wbg_set_ret_score(this.__wbg_ptr, arg0);
     }
     /**
+    * @returns {bigint}
+    */
+    get sqdiff() {
+        const ret = wasm.__wbg_get_ret_sqdiff(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * @param {bigint} arg0
+    */
+    set sqdiff(arg0) {
+        wasm.__wbg_set_ret_sqdiff(this.__wbg_ptr, arg0);
+    }
+    /**
     * @returns {string}
     */
     get err() {

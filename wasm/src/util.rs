@@ -219,7 +219,7 @@ fn can_move(N: usize, h: &Vec<Vec<char>>, v: &Vec<Vec<char>>, i: usize, j: usize
 }
 
 pub fn compute_score(input: &Input, out: &Output) -> (i64, String) {
-    let (mut score, err, _) = compute_score_details(input, out.start, &out.out);
+    let (mut score, _, err, _) = compute_score_details(input, out.start, &out.out);
     if err.len() > 0 {
         score = 0;
     }
@@ -245,7 +245,7 @@ pub fn compute_score_details(
     input: &Input,
     start: (usize, usize, usize, usize),
     out: &[(bool, usize, usize)],
-) -> (i64, String, (Vec<Vec<i32>>, (usize, usize), (usize, usize))) {
+) -> (i64, i64, String, (Vec<Vec<i32>>, (usize, usize), (usize, usize))) {
     let mut a = input.a.clone();
     let mut p1 = (start.0, start.1);
     let mut p2 = (start.2, start.3);
@@ -258,14 +258,14 @@ pub fn compute_score_details(
         }
         if dir1 != !0 {
             if !can_move(input.n, &input.hs, &input.vs, p1.0, p1.1, dir1) {
-                return (0, format!("Invalid move: {}", DIRS[dir1]), (a, p1, p2));
+                return (0, 0, format!("Invalid move: {}", DIRS[dir1]), (a, p1, p2));
             }
             p1.0 += DIJ[dir1].0;
             p1.1 += DIJ[dir1].1;
         }
         if dir2 != !0 {
             if !can_move(input.n, &input.hs, &input.vs, p2.0, p2.1, dir2) {
-                return (0, format!("Invalid move: {}", DIRS[dir2]), (a, p1, p2));
+                return (0, 0, format!("Invalid move: {}", DIRS[dir2]), (a, p1, p2));
             }
             p2.0 += DIJ[dir2].0;
             p2.1 += DIJ[dir2].1;
@@ -273,7 +273,7 @@ pub fn compute_score_details(
     }
     let after = compute_diff(&input, &a);
     let score = ((1e6 * (f64::log2(before as f64) - f64::log2(after as f64))).round() as i64).max(1);
-    (score, String::new(), (a, p1, p2))
+    (score, after, String::new(), (a, p1, p2))
 }
 
 pub fn rect(x: usize, y: usize, w: usize, h: usize, fill: &str) -> Rectangle {
@@ -289,8 +289,8 @@ fn group(title: String) -> Group {
     Group::new().add(Title::new().add(SvgText::new(title)))
 }
 
-pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String) {
-    let (score, err, (state, p1, p2)) = compute_score_details(input, output.start, &output.out[..turn]);
+pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, i64, String, String) {
+    let (score, sqdiff, err, (state, p1, p2)) = compute_score_details(input, output.start, &output.out[..turn]);
 
     let w = min(30, 1000 / input.n);
     let h = min(30, 1000 / input.n);
@@ -437,5 +437,5 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
     );
     doc = doc.add(grp);
 
-    (score, err, doc.to_string())
+    (score, sqdiff, err, doc.to_string())
 }

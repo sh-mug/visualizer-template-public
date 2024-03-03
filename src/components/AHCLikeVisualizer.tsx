@@ -22,6 +22,7 @@ const AHCLikeVisualizer: FC = () => {
   const [visualizerResult, setVisualizerResult] = useState<VisualizerResult>({
     svgString: '',
     score: 0,
+    sqdiff: 0,
   });
 
   useEffect(() => {
@@ -62,11 +63,19 @@ const AHCLikeVisualizer: FC = () => {
         visualizerSettingInfo.turn
       );
       console.log(ret);
-      setVisualizerResult({ svgString: ret.svg, score: Number(ret.score) });
+      setVisualizerResult({
+        svgString: ret.svg,
+        score: Number(ret.score),
+        sqdiff: Number(ret.sqdiff),
+      });
     } catch (e) {
       // visが失敗した場合にはエラーを出力する
       console.log(e);
-      setVisualizerResult({ svgString: 'invalid input or output', score: 0 });
+      setVisualizerResult({
+        svgString: 'invalid input or output',
+        score: 0,
+        sqdiff: 0,
+      });
     }
   }, [
     visualizerSettingInfo.turn,
@@ -92,6 +101,7 @@ const AHCLikeVisualizer: FC = () => {
       <SvgViewer
         svgString={visualizerResult.svgString}
         score={visualizerResult.score}
+        sqdiff={visualizerResult.sqdiff}
       ></SvgViewer>
     </>
   );

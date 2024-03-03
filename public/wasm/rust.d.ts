@@ -30,6 +30,9 @@ export class Ret {
   score: bigint;
 /**
 */
+  sqdiff: bigint;
+/**
+*/
   svg: string;
 }
 
@@ -41,6 +44,8 @@ export interface InitOutput {
   readonly __wbg_ret_free: (a: number) => void;
   readonly __wbg_get_ret_score: (a: number) => number;
   readonly __wbg_set_ret_score: (a: number, b: number) => void;
+  readonly __wbg_get_ret_sqdiff: (a: number) => number;
+  readonly __wbg_set_ret_sqdiff: (a: number, b: number) => void;
   readonly __wbg_get_ret_err: (a: number, b: number) => void;
   readonly __wbg_set_ret_err: (a: number, b: number, c: number) => void;
   readonly __wbg_get_ret_svg: (a: number, b: number) => void;
