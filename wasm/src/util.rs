@@ -1,5 +1,5 @@
 #![allow(non_snake_case, unused_macros)]
-use svg::node::element::{Group, Rectangle, Style, Title, Text};
+use svg::node::element::{Group, Rectangle, Style, Title, Text, Circle};
 use svg::node::Text as SvgText;
 // use web_sys::console::log_1;
 use itertools::Itertools;
@@ -316,7 +316,7 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
                     y * h,
                     w,
                     h,
-                    "white"
+                    &format!("hsl({}, 100%, 90%)", 240. - 240. * state[y][x] as f64 / (input.n * input.n) as f64).to_string(),
                 )
                 .set("stroke", "lightgray")
                 .set("stroke-width", 1)
@@ -412,30 +412,28 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
     // p1: Takahashi
     let mut grp = group(format!("Takahashi: a[{}][{}]={}", p1.0, p1.1, state[p1.0][p1.1]));
     grp = grp.add(
-        rect(
-            p1.1 * w,
-            p1.0 * h,
-            w,
-            h,
-            "lightpink"
-        )
-        .set("fill-opacity", 0.5)
-        .set("class", "p1"),
-    );
+        Circle::new()
+            .set("cx", p1.1 * w + w / 2)
+            .set("cy", p1.0 * h + h / 2)
+            .set("r", w / 3)
+            .set("fill-opacity", 0)
+            .set("class", "p1")
+            .set("stroke", "red")
+            .set("stroke-width", 3),
+);
     doc = doc.add(grp);
 
     // p2: Aoki
     let mut grp = group(format!("Aoki: a[{}][{}]={}", p2.0, p2.1, state[p2.0][p2.1]));
     grp = grp.add(
-        rect(
-            p2.1 * w,
-            p2.0 * h,
-            w,
-            h,
-            "lightblue"
-        )
-        .set("fill-opacity", 0.5)
-        .set("class", "p2"),
+        Circle::new()
+            .set("cx", p2.1 * w + w / 2)
+            .set("cy", p2.0 * h + h / 2)
+            .set("r", w / 3)
+            .set("fill-opacity", 0)
+            .set("class", "p2")
+            .set("stroke", "blue")
+            .set("stroke-width", 3),
     );
     doc = doc.add(grp);
 
