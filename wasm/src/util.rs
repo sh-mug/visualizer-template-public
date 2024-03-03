@@ -2,7 +2,8 @@
 use proconio::input;
 use rand::prelude::*;
 use std::collections::VecDeque;
-use svg::node::element::{Rectangle, Style};
+use svg::node::element::{Group, Rectangle, Style, Title};
+use svg::node::Text as SvgText;
 use web_sys::console::log_1;
 
 pub trait SetMinMax {
@@ -154,88 +155,6 @@ fn calculate_score(input: &Input, yxc: &Vec<(usize, usize, usize)>) -> (usize, V
     return (score, state);
 }
 
-fn generate_dark_color(code: usize) -> String {
-    // 入力値に基づいてHue（色相）を計算
-    let hue = (code as f32 * 36.0) % 360.0;
-
-    // Saturation（彩度）を低めに、Lightness（明度）を固定値で低く設定
-    let saturation = 30.0;
-    let lightness = 30.0;
-
-    // HSL to RGB 変換
-    let hue_normalized = hue / 360.0;
-    let q = if lightness < 0.5 {
-        lightness * (1.0 + saturation)
-    } else {
-        lightness + saturation - (lightness * saturation)
-    };
-
-    let p = 2.0 * lightness - q;
-
-    let r = hue_to_rgb(p, q, hue_normalized + 1.0 / 3.0);
-    let g = hue_to_rgb(p, q, hue_normalized);
-    let b = hue_to_rgb(p, q, hue_normalized - 1.0 / 3.0);
-
-    // RGB を 16 進数に変換して文字列を返す
-    format!(
-        "#{:02X}{:02X}{:02X}",
-        (r * 255.0) as u8,
-        (g * 255.0) as u8,
-        (b * 255.0) as u8
-    )
-}
-
-fn generate_color(code: usize) -> String {
-    // 入力値に基づいてHue（色相）を計算
-    let hue = (code as f32 * 36.0) % 360.0;
-
-    // Saturation（彩度）とLightness（明度）を固定値で設定
-    let saturation = 10.0;
-    let lightness = 0.1;
-
-    // HSL to RGB 変換
-    let hue_normalized = hue / 360.0;
-    let q = if lightness < 0.5 {
-        lightness * (1.0 + saturation)
-    } else {
-        lightness + saturation - (lightness * saturation)
-    };
-
-    let p = 2.0 * lightness - q;
-
-    let r = hue_to_rgb(p, q, hue_normalized + 1.0 / 3.0);
-    let g = hue_to_rgb(p, q, hue_normalized);
-    let b = hue_to_rgb(p, q, hue_normalized - 1.0 / 3.0);
-
-    // RGB を 16 進数に変換して文字列を返す
-    format!(
-        "#{:02X}{:02X}{:02X}",
-        (r * 255.0) as u8,
-        (g * 255.0) as u8,
-        (b * 255.0) as u8
-    )
-}
-
-fn hue_to_rgb(p: f32, q: f32, t: f32) -> f32 {
-    let t = if t < 0.0 {
-        t + 1.0
-    } else if t > 1.0 {
-        t - 1.0
-    } else {
-        t
-    };
-
-    if t < 1.0 / 6.0 {
-        p + (q - p) * 6.0 * t
-    } else if t < 1.0 / 2.0 {
-        q
-    } else if t < 2.0 / 3.0 {
-        p + (q - p) * (2.0 / 3.0 - t) * 6.0
-    } else {
-        p
-    }
-}
-
 pub fn rect(x: usize, y: usize, w: usize, h: usize, fill: &str) -> Rectangle {
     Rectangle::new()
         .set("x", x)
@@ -243,6 +162,10 @@ pub fn rect(x: usize, y: usize, w: usize, h: usize, fill: &str) -> Rectangle {
         .set("width", w)
         .set("height", h)
         .set("fill", fill)
+}
+
+fn group(title: String) -> Group {
+    Group::new().add(Title::new().add(SvgText::new(title)))
 }
 
 pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String) {
@@ -272,7 +195,7 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
                     W - (y + 1) * h,
                     w,
                     h,
-                    &generate_dark_color(state[y][x]),
+                    &format!("hsv({}, 100%, {}%)", state[y][x] * 360 / input.k, 100),
                 )
                 .set("stroke", "black")
                 .set("stroke-width", 1)
@@ -280,6 +203,21 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
             );
         }
     }
+
+    // let mut grp = group(format!("{}: ({} {}) -- ({} {})", i, a, b, c, d));
+    // grp = grp.add(
+    //     rect(
+    //         a as f32 * 0.1,
+    //         b as f32 * 0.1,
+    //         (c - a) as f32 * 0.1,
+    //         (d - b) as f32 * 0.1,
+    //         &rect_color,
+    //     )
+    //     .set("stroke", "black")
+    //     .set("stroke-width", 1)
+    //     .set("class", "box"),
+    // );
+    // doc = doc.add(grp);
 
     (score as i64, "".to_string(), doc.to_string())
 }
