@@ -410,19 +410,23 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
     );
 
     // p1: Takahashi
-    doc = doc.add(
+    let mut grp = group(format!("Takahashi: a[{}][{}]={}", p1.0, p1.1, state[p1.0][p1.1]));
+    grp = grp.add(
         rect(
             p1.1 * w,
             p1.0 * h,
             w,
             h,
-            "lightgreen"
+            "lightpink"
         )
         .set("fill-opacity", 0.5)
+        .set("class", "p1"),
     );
+    doc = doc.add(grp);
 
     // p2: Aoki
-    doc = doc.add(
+    let mut grp = group(format!("Aoki: a[{}][{}]={}", p2.0, p2.1, state[p2.0][p2.1]));
+    grp = grp.add(
         rect(
             p2.1 * w,
             p2.0 * h,
@@ -431,7 +435,9 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
             "lightblue"
         )
         .set("fill-opacity", 0.5)
+        .set("class", "p2"),
     );
+    doc = doc.add(grp);
 
     (score, err, doc.to_string())
 }
