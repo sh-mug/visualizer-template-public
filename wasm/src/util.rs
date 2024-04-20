@@ -545,10 +545,10 @@ impl P {
 const CANVAS_SIZE: i64 = 1000;
 const COORD_MAX: i64 = 100000;
 
-fn coordinate_to_canvas(y: i64, x: i64) -> (i64, i64) {
+fn coordinate_to_canvas(x: i64, y: i64) -> (i64, i64) {
     let y = (y + COORD_MAX) * CANVAS_SIZE / (2 * COORD_MAX);
     let x = (x + COORD_MAX) * CANVAS_SIZE / (2 * COORD_MAX);
-    (CANVAS_SIZE - y, x)
+    (x, CANVAS_SIZE - y)
 }
 
 pub fn rect(x: usize, y: usize, w: usize, h: usize, fill: &str) -> Rectangle {
@@ -601,9 +601,9 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
 
     // 壁
     for &(x1, y1, x2, y2) in input.walls.iter() {
-        let (y1, x1) = coordinate_to_canvas(y1, x1);
-        let (y2, x2) = coordinate_to_canvas(y2, x2);
         let mut grp = group(format!("wall: ({}, {})-({}, {})", x1, y1, x2, y2));
+        let (x1, y1) = coordinate_to_canvas(x1, y1);
+        let (x2, y2) = coordinate_to_canvas(x2, y2);
         grp = grp.add(
             Line::new()
                 .set("x1", x1)
@@ -618,9 +618,9 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
 
     // チェックポイント
     for i in 0..input.ps.len() {
-        let (y, x) = input.ps[i];
-        let (y, x) = coordinate_to_canvas(y, x);
+        let (x, y) = input.ps[i];
         let mut grp = group(format!("checkpoint: ({}, {})", x, y));
+        let (x, y) = coordinate_to_canvas(x, y);
         let CLEAR_SIZE = 1000;
         grp = grp.add(
             Circle::new()
@@ -634,11 +634,8 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
     }
 
     // ドローン
-    let (y, x) = coordinate_to_canvas(p.0 as i64, p.1 as i64);
-    let (vy, vx) = (
-        v.0 as i64 * CANVAS_SIZE / (COORD_MAX),
-        v.1 as i64 * CANVAS_SIZE / (COORD_MAX),
-    );
+    let (x, y) = coordinate_to_canvas(p.0 as i64, p.1 as i64);
+    let (nx, ny) = coordinate_to_canvas((p.0 + v.0) as i64, (p.1 + v.1) as i64);
     let mut grp = group(format!(
         "drone: ({}, {})\nvelocity: ({}, {})",
         p.0, p.1, v.0, v.1
@@ -654,8 +651,8 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
         Line::new()
             .set("x1", x)
             .set("y1", y)
-            .set("x2", x + vx)
-            .set("y2", y - vy)
+            .set("x2", nx)
+            .set("y2", ny)
             .set("stroke", "blue")
             .set("stroke-width", 1),
     );
