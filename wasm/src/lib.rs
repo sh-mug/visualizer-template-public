@@ -2,14 +2,14 @@ use wasm_bindgen::prelude::*;
 mod util;
 
 #[wasm_bindgen]
-pub fn gen(seed: i32) -> String {
-    util::gen(seed as u64).to_string()
+pub fn gen(seed: i32, problem: String) -> String {
+    let problem = problem.chars().next().unwrap();
+    util::gen(seed as u64, problem).to_string()
 }
 
 #[wasm_bindgen(getter_with_clone)]
 pub struct Ret {
     pub score: i64,
-    pub sqdiff: i64,
     pub err: String,
     pub svg: String,
 }
@@ -20,12 +20,17 @@ pub fn vis(_input: String, _output: String, turn: usize) -> Ret {
     let _output = _output.as_str();
     let output = match util::parse_output(&input, &_output) {
         Ok(output) => output,
-        Err(err) => return Ret { score: 0, sqdiff: 0, err: err, svg: "".to_string() },
+        Err(err) => {
+            return Ret {
+                score: 0,
+                err: err,
+                svg: "".to_string(),
+            }
+        }
     };
-    let (score, sqdiff, err, svg) = util::vis(&input, &output, turn);
+    let (score, err, svg) = util::vis(&input, &output, turn);
     Ret {
         score: score as i64,
-        sqdiff: sqdiff as i64,
         err,
         svg,
     }

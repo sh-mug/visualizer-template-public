@@ -66,6 +66,23 @@ const InputOutput: FC<InputOutputProps> = ({
             max="10000"
           />
         </label>
+        {/* ここにドロップダウンで問題名 "A" "B" "C" を選択する入力を置きたい */}
+        <label>
+          Problem:
+          <select
+            value={visualizerSettingInfo.problem}
+            onChange={(e) => {
+              setVisualizerSettingInfo((prev) => ({
+                ...prev,
+                problem: e.target.value,
+              }));
+            }}
+          >
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+        </label>
         <input
           type="button"
           value={buttonText}

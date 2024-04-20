@@ -18,35 +18,6 @@ function getStringFromWasm0(ptr, len) {
     return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
 }
 
-let cachedInt32Memory0 = null;
-
-function getInt32Memory0() {
-    if (cachedInt32Memory0 === null || cachedInt32Memory0.byteLength === 0) {
-        cachedInt32Memory0 = new Int32Array(wasm.memory.buffer);
-    }
-    return cachedInt32Memory0;
-}
-/**
-* @param {number} seed
-* @returns {string}
-*/
-export function gen(seed) {
-    let deferred1_0;
-    let deferred1_1;
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm.gen(retptr, seed);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        deferred1_0 = r0;
-        deferred1_1 = r1;
-        return getStringFromWasm0(r0, r1);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-    }
-}
-
 let WASM_VECTOR_LEN = 0;
 
 const cachedTextEncoder = (typeof TextEncoder !== 'undefined' ? new TextEncoder('utf-8') : { encode: () => { throw Error('TextEncoder not available') } } );
@@ -96,11 +67,45 @@ function passStringToWasm0(arg, malloc, realloc) {
         const ret = encodeString(arg, view);
 
         offset += ret.written;
+        ptr = realloc(ptr, len, offset, 1) >>> 0;
     }
 
     WASM_VECTOR_LEN = offset;
     return ptr;
 }
+
+let cachedInt32Memory0 = null;
+
+function getInt32Memory0() {
+    if (cachedInt32Memory0 === null || cachedInt32Memory0.byteLength === 0) {
+        cachedInt32Memory0 = new Int32Array(wasm.memory.buffer);
+    }
+    return cachedInt32Memory0;
+}
+/**
+* @param {number} seed
+* @param {string} problem
+* @returns {string}
+*/
+export function gen(seed, problem) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(problem, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.gen(retptr, seed, ptr0, len0);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
 /**
 * @param {string} _input
 * @param {string} _output
@@ -130,6 +135,9 @@ export function get_max_turn(_input, _output) {
     return ret >>> 0;
 }
 
+const RetFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_ret_free(ptr >>> 0));
 /**
 */
 export class Ret {
@@ -138,14 +146,14 @@ export class Ret {
         ptr = ptr >>> 0;
         const obj = Object.create(Ret.prototype);
         obj.__wbg_ptr = ptr;
-
+        RetFinalization.register(obj, obj.__wbg_ptr, obj);
         return obj;
     }
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-
+        RetFinalization.unregister(this);
         return ptr;
     }
 
@@ -165,19 +173,6 @@ export class Ret {
     */
     set score(arg0) {
         wasm.__wbg_set_ret_score(this.__wbg_ptr, arg0);
-    }
-    /**
-    * @returns {bigint}
-    */
-    get sqdiff() {
-        const ret = wasm.__wbg_get_ret_sqdiff(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-    * @param {bigint} arg0
-    */
-    set sqdiff(arg0) {
-        wasm.__wbg_set_ret_sqdiff(this.__wbg_ptr, arg0);
     }
     /**
     * @returns {string}
