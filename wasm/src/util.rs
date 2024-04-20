@@ -1,5 +1,5 @@
 #![allow(non_snake_case, unused_macros)]
-use svg::node::element::{Circle, Group, Rectangle, Style, Text, Title};
+use svg::node::element::{Circle, Group, Line, Rectangle, Style, Text, Title};
 use svg::node::Text as SvgText;
 // use web_sys::console::log_1;
 use proconio::{input, marker::Chars};
@@ -542,6 +542,28 @@ impl P {
     }
 }
 
+const CANVAS_SIZE: i64 = 1000;
+const COORD_MAX: i64 = 100000;
+
+fn coordinate_to_canvas(y: i64, x: i64) -> (i64, i64) {
+    let y = (y + COORD_MAX) * CANVAS_SIZE / (2 * COORD_MAX);
+    let x = (x + COORD_MAX) * CANVAS_SIZE / (2 * COORD_MAX);
+    (CANVAS_SIZE - y, x)
+}
+
+pub fn rect(x: usize, y: usize, w: usize, h: usize, fill: &str) -> Rectangle {
+    Rectangle::new()
+        .set("x", x)
+        .set("y", y)
+        .set("width", w)
+        .set("height", h)
+        .set("fill", fill)
+}
+
+fn group(title: String) -> Group {
+    Group::new().add(Title::new(title))
+}
+
 pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String) {
     let (score, err, (p, v, visited)) = compute_score_details(input, &output.out[..turn]);
 
@@ -558,6 +580,86 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String)
         "text {{text-anchor: middle;dominant-baseline: central; font-size: {}}}",
         6
     )));
+
+    // 外周
+    doc = doc.add(
+        rect(0, 0, W, H, "white")
+            .set("stroke", "lightgray")
+            .set("stroke-width", 1)
+            .set("class", "box"),
+    );
+
+    // pub struct Input {
+    //     pub eps: f64,
+    //     pub delta: f64,
+    //     pub s: (i64, i64),
+    //     pub ps: Vec<(i64, i64)>,
+    //     pub walls: Vec<(i64, i64, i64, i64)>,
+    //     pub fs: Vec<(i64, i64)>,
+    //     pub alphas: Vec<f64>,
+    // }
+
+    // 壁
+    for &(x1, y1, x2, y2) in input.walls.iter() {
+        let (y1, x1) = coordinate_to_canvas(y1, x1);
+        let (y2, x2) = coordinate_to_canvas(y2, x2);
+        let mut grp = group(format!("wall: ({}, {})-({}, {})", x1, y1, x2, y2));
+        grp = grp.add(
+            Line::new()
+                .set("x1", x1)
+                .set("y1", y1)
+                .set("x2", x2)
+                .set("y2", y2)
+                .set("stroke", "lightgray")
+                .set("stroke-width", 1),
+        );
+        doc = doc.add(grp);
+    }
+
+    // チェックポイント
+    for i in 0..input.ps.len() {
+        let (y, x) = input.ps[i];
+        let (y, x) = coordinate_to_canvas(y, x);
+        let mut grp = group(format!("checkpoint: ({}, {})", x, y));
+        let CLEAR_SIZE = 1000;
+        grp = grp.add(
+            Circle::new()
+                .set("cx", x)
+                .set("cy", y)
+                .set("r", CLEAR_SIZE * CANVAS_SIZE / (2 * COORD_MAX))
+                .set("fill", visited[i].then(|| "green").unwrap_or("red"))
+                .set("fill-opacity", 0.5),
+        );
+        doc = doc.add(grp);
+    }
+
+    // ドローン
+    let (y, x) = coordinate_to_canvas(p.0 as i64, p.1 as i64);
+    let (vy, vx) = (
+        v.0 as i64 * CANVAS_SIZE / (COORD_MAX),
+        v.1 as i64 * CANVAS_SIZE / (COORD_MAX),
+    );
+    let mut grp = group(format!(
+        "drone: ({}, {})\nvelocity: ({}, {})",
+        p.0, p.1, v.0, v.1
+    ));
+    grp = grp.add(
+        Circle::new()
+            .set("cx", x)
+            .set("cy", y)
+            .set("r", 3)
+            .set("fill", "blue"),
+    );
+    grp = grp.add(
+        Line::new()
+            .set("x1", x)
+            .set("y1", y)
+            .set("x2", x + vx)
+            .set("y2", y - vy)
+            .set("stroke", "blue")
+            .set("stroke-width", 1),
+    );
+    doc = doc.add(grp);
 
     (score, err, doc.to_string())
 }
