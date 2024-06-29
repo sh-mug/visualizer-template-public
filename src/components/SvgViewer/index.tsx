@@ -3,14 +3,16 @@ import type { FC } from 'react';
 type SvgViewerProps = {
   svgString: string;
   score: number;
-  sqdiff: number;
+  pos: string;
+  vel: string;
 };
 
-const SvgViewer: FC<SvgViewerProps> = ({ svgString, score, sqdiff }) => {
+const SvgViewer: FC<SvgViewerProps> = ({ svgString, score, pos, vel }) => {
   return (
     <>
       <div>score={score}</div>
-      <div>square diff={sqdiff}</div>
+      <div>position={pos}</div>
+      <div>velocity={vel}</div>
       <div
         dangerouslySetInnerHTML={{
           __html: svgString,

@@ -1,7 +1,7 @@
 import type { FC } from 'react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { gen, get_max_turn as getMaxTurn, vis } from '../../public/wasm/rust';
-import type { VisualizerSettingInfo, VisualizerResult } from '../types';
+import type { VisualizerResult, VisualizerSettingInfo } from '../types';
 import Description from './Description';
 import FileUploader from './FileUploader';
 import InputOutput from './InputOutput';
@@ -22,7 +22,8 @@ const AHCLikeVisualizer: FC = () => {
   const [visualizerResult, setVisualizerResult] = useState<VisualizerResult>({
     svgString: '',
     score: 0,
-    sqdiff: 0,
+    pos: '',
+    vel: '',
   });
 
   useEffect(() => {
@@ -66,7 +67,8 @@ const AHCLikeVisualizer: FC = () => {
       setVisualizerResult({
         svgString: ret.svg,
         score: Number(ret.score),
-        sqdiff: Number(ret.sqdiff),
+        pos: ret.pos,
+        vel: ret.vel,
       });
     } catch (e) {
       // visが失敗した場合にはエラーを出力する
@@ -74,7 +76,8 @@ const AHCLikeVisualizer: FC = () => {
       setVisualizerResult({
         svgString: 'invalid input or output',
         score: 0,
-        sqdiff: 0,
+        pos: '',
+        vel: '',
       });
     }
   }, [
@@ -101,7 +104,8 @@ const AHCLikeVisualizer: FC = () => {
       <SvgViewer
         svgString={visualizerResult.svgString}
         score={visualizerResult.score}
-        sqdiff={visualizerResult.sqdiff}
+        pos={visualizerResult.pos}
+        vel={visualizerResult.vel}
       ></SvgViewer>
     </>
   );

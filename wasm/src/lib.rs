@@ -9,7 +9,8 @@ pub fn gen(seed: i32) -> String {
 #[wasm_bindgen(getter_with_clone)]
 pub struct Ret {
     pub score: i64,
-    pub sqdiff: i64,
+    pub pos: String,
+    pub vel: String,
     pub err: String,
     pub svg: String,
 }
@@ -18,22 +19,28 @@ pub struct Ret {
 pub fn vis(_input: String, _output: String, turn: usize) -> Ret {
     let input = util::parse_input(&_input);
     let _output = _output.as_str();
-    let output = match util::parse_output(&input, &_output) {
+    let output = match util::parse_output(&_output) {
         Ok(output) => output,
-        Err(err) => return Ret { score: 0, sqdiff: 0, err: err, svg: "".to_string() },
+        Err(err) => return Ret {
+            score: 0,
+            pos: "".to_string(),
+            vel: "".to_string(),
+            err: err,
+            svg: "".to_string(),
+        },
     };
-    let (score, sqdiff, err, svg) = util::vis(&input, &output, turn);
+    let (score, pos, vel, err, svg) = util::vis(&input, &output, turn);
     Ret {
-        score: score as i64,
-        sqdiff: sqdiff as i64,
-        err,
-        svg,
+        score: score,
+        pos: pos,
+        vel: vel,
+        err: err,
+        svg: svg,
     }
 }
 
 #[wasm_bindgen]
 pub fn get_max_turn(_input: String, _output: String) -> usize {
-    let input = util::parse_input(&_input);
-    let output = util::parse_output(&input, &_output).unwrap();
-    output.out.len()
+    let output = util::parse_output(&_output).unwrap();
+    output.acc.len()
 }

@@ -16,7 +16,7 @@ const InputOutput: FC<InputOutputProps> = ({
   visualizerSettingInfo,
   setVisualizerSettingInfo,
 }) => {
-  const [downloadCases, setDownloadCases] = useState(100);
+  const [downloadCases, setDownloadCases] = useState(21);
   const [buttonText, setButtonText] = useState('Download');
   const { downloadInput } = useDownloadInput();
 
@@ -62,8 +62,8 @@ const InputOutput: FC<InputOutputProps> = ({
             onChange={(e) => {
               setDownloadCases(Number(e.target.value));
             }}
-            min="1"
-            max="10000"
+            min="21"
+            max="21"
           />
         </label>
         <input

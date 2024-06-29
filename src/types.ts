@@ -9,5 +9,6 @@ export type VisualizerSettingInfo = {
 export type VisualizerResult = {
   svgString: string;
   score: number;
-  sqdiff: number;
+  pos: string;
+  vel: string;
 };
