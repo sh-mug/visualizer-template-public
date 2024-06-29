@@ -213,8 +213,9 @@ fn group(title: String) -> Group {
     Group::new().add(Title::new().add(SvgText::new(title)))
 }
 
-fn to_canvas_pos(x: i32, y: i32, dot_per_unit: f64, canvas_size: i32) -> (i32, i32) {
-    (x * dot_per_unit as i32 + canvas_size / 2, y * dot_per_unit as i32 + canvas_size / 2)
+fn to_canvas_pos(x: i32, y: i32, dot_per_unit: f64, canvas_size: i32) -> (f64, f64) {
+    // (x * dot_per_unit as i32 + canvas_size / 2, y * dot_per_unit as i32 + canvas_size / 2)
+    (x as f64 * dot_per_unit + canvas_size as f64 / 2.0, y as f64 * dot_per_unit + canvas_size as f64 / 2.0)
 }
 
 pub fn arrow(x1: usize, y1: usize, x2: usize, y2: usize, color: &str) -> Line {
