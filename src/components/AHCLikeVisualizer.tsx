@@ -14,7 +14,7 @@ const AHCLikeVisualizer: FC = () => {
     useState<VisualizerSettingInfo>({
       input: '',
       output: '',
-      seed: 0,
+      seed: 1,
       turn: 0,
       maxTurn: 0,
     });

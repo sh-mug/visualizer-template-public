@@ -97,7 +97,7 @@ pub fn parse_output(f: &str) -> Result<Output, String> {
     Ok(Output { acc })
 }
 
-const FIXED: [&'static str; 21] = [
+const FIXED: [&'static str; 25] = [
     include_str!("../in_fixed/spaceship1"),
     include_str!("../in_fixed/spaceship2"),
     include_str!("../in_fixed/spaceship3"),
@@ -119,10 +119,14 @@ const FIXED: [&'static str; 21] = [
     include_str!("../in_fixed/spaceship19"),
     include_str!("../in_fixed/spaceship20"),
     include_str!("../in_fixed/spaceship21"),
+    include_str!("../in_fixed/spaceship22"),
+    include_str!("../in_fixed/spaceship23"),
+    include_str!("../in_fixed/spaceship24"),
+    include_str!("../in_fixed/spaceship25"),
 ];
 
 pub fn gen(seed: u64) -> Input {
-    let ty = seed % 21;
+    let ty = (seed + 24) % 25;
     let input = parse_input_fixed(FIXED[ty as usize]);
     input
 }
