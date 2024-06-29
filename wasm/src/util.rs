@@ -1,5 +1,5 @@
 #![allow(non_snake_case, unused_macros)]
-use svg::node::element::{Group, Rectangle, Style, Title, Text, Circle};
+use svg::node::element::{Group, Rectangle, Style, Title, Text, Circle, Line};
 use svg::node::Text as SvgText;
 use web_sys::console::log_1;
 use itertools::Itertools;
@@ -149,7 +149,6 @@ const FIXED: [&'static str; 21] = [
 ];
 
 pub fn gen(seed: u64) -> Input {
-    let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(seed);
     let ty = seed % 21;
     let input = parse_input_fixed(FIXED[ty as usize]);
     input
@@ -214,8 +213,21 @@ fn group(title: String) -> Group {
     Group::new().add(Title::new().add(SvgText::new(title)))
 }
 
-fn to_canvas_pos(x: i32, y: i32, dot_per_unit: f64) -> (i32, i32) {
-    (x * dot_per_unit as i32, y * dot_per_unit as i32)
+fn to_canvas_pos(x: i32, y: i32, dot_per_unit: f64, canvas_size: i32) -> (i32, i32) {
+    (x * dot_per_unit as i32 + canvas_size / 2, y * dot_per_unit as i32 + canvas_size / 2)
+}
+
+pub fn arrow(x1: usize, y1: usize, x2: usize, y2: usize, color: &str) -> Line {
+    Line::new()
+        .set("x1", x1)
+        .set("y1", y1)
+        .set("x2", x2)
+        .set("y2", y2)
+        .set("stroke", color)
+        .set("stroke-width", 3)
+        .set("stroke-linecap", "round")
+        .set("stroke-linecap", "round")
+        .set("marker-end", "url(#arrowhead)")
 }
 
 pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String, String, String) {
@@ -245,18 +257,45 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String,
         6
     )));
 
-    for (x, y) in input.target.iter() {
-        let (x, y) = to_canvas_pos(*x, *y, dot_per_unit);
-        doc = doc.add(
+    doc = doc.add(SvgText::new(
+        r#"<defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="3" refY="2" orient="auto">
+                <polygon points="0 0, 4 2, 0 4" fill="black"/>
+            </marker>
+        </defs>"#,
+    ));
+    
+    // spaceship
+    let mut grp = group(format!("spaceship: ({}, {})", pos.0, pos.1));
+    let (x, y) = to_canvas_pos(pos.0, pos.1, dot_per_unit, W);
+    let spaceship_size = 4;
+    grp = grp.add(
+        rect(x as usize - spaceship_size, y as usize - spaceship_size, 2 * spaceship_size, 2 * spaceship_size, "black")
+    );
+    doc = doc.add(grp);
+    for (x1, y1, x2, y2) in lines {
+        let (x1, y1) = to_canvas_pos(x1, y1, dot_per_unit, W);
+        let (x2, y2) = to_canvas_pos(x2, y2, dot_per_unit, W);
+        doc = doc.add(arrow(x1 as usize, y1 as usize, x2 as usize, y2 as usize, "black"));
+    }
+
+    // targets
+    for i in 0..input.target.len() {
+        let (x, y) = to_canvas_pos(input.target[i].0, input.target[i].1, dot_per_unit, W);
+        let mut grp = group(format!("({}, {})", x, y));
+        let color = if visited[i] { "cyan" } else { "red" };
+        grp = grp.add(
             Circle::new()
                 .set("cx", x)
                 .set("cy", y)
                 .set("r", 3)
-                .set("fill", "black")
-                .set("class", "target"),
+                .set("fill", color),
         );
+        doc = doc.add(grp);
     }
-    
+
+
+
     let pos_str = format!("{} {}", pos.0, pos.1);
     let vel_str = format!("{} {}", vel.0, vel.1);
     (score as i64, pos_str, vel_str, err, doc.to_string())
