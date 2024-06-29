@@ -40,7 +40,7 @@ const AHCLikeVisualizer: FC = () => {
       setVisualizerSettingInfo((prev) => ({
         ...prev,
         maxTurn,
-        turn: 0,
+        turn: maxTurn,
       }));
     } catch (e) {
       // outputが不正な場合には計算ができない。そのときにはmaxTurnを0にする

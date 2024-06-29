@@ -1,14 +1,7 @@
 #![allow(non_snake_case, unused_macros)]
-use svg::node::element::{Group, Rectangle, Style, Title, Text, Circle, Line};
+use svg::node::element::{Group, Rectangle, Style, Title, Circle, Line};
 use svg::node::Text as SvgText;
 use web_sys::console::log_1;
-use itertools::Itertools;
-use proconio::{input, marker::Chars};
-use rand::prelude::*;
-use std::ops::RangeBounds;
-use std::cmp::min;
-use proconio::source::once::OnceSource;
-use std::io::{self, BufRead};
 
 pub trait SetMinMax {
     fn setmin(&mut self, v: Self) -> bool;
@@ -55,7 +48,8 @@ impl std::fmt::Display for Input {
 }
 
 pub fn parse_input(f: &str) -> Input {
-    let N = f.chars().filter(|&c| c == '\n').count();
+    let N = f.chars().filter(|&c| c == '\n').count()
+                   + if f.chars().last() != Some('\n') { 1 } else { 0 };
     log_1(&format!("parse_input N: {}", N).into());
     let f = proconio::source::once::OnceSource::from(f);
     proconio::input! {
@@ -66,8 +60,9 @@ pub fn parse_input(f: &str) -> Input {
 }
 
 pub fn parse_input_fixed(f: &str) -> Input {
-    let N = f.chars().filter(|&c| c == '\n').count();
-    log_1(&format!("parse_input_fixed N: {}", N).into());
+    let N = f.chars().filter(|&c| c == '\n').count()
+                   + if f.chars().last() != Some('\n') { 1 } else { 0 };
+                   log_1(&format!("parse_input_fixed N: {}", N).into());
     let f = proconio::source::once::OnceSource::from(f);
     proconio::input! {
         from f,
@@ -76,35 +71,13 @@ pub fn parse_input_fixed(f: &str) -> Input {
     Input { target }
 }
 
-pub fn read<T: Copy + PartialOrd + std::fmt::Display + std::str::FromStr, R: RangeBounds<T>>(
-    token: Option<&str>,
-    range: R,
-) -> Result<T, String> {
-    if let Some(v) = token {
-        if let Ok(v) = v.parse::<T>() {
-            if !range.contains(&v) {
-                Err(format!("Out of range: {}", v))
-            } else {
-                Ok(v)
-            }
-        } else {
-            Err(format!("Parse error: {}", v))
-        }
-    } else {
-        Err("Unexpected EOF".to_owned())
-    }
-}
-
-const DIRS: [char; 4] = ['U', 'D', 'L', 'R'];
-const DIJ: [(usize, usize); 4] = [(!0, 0), (1, 0), (0, !0), (0, 1)];
-
 pub struct Output {
     pub acc: Vec<(i32, i32)>,
 }
 
 pub fn parse_output(f: &str) -> Result<Output, String> {
     let mut acc = vec![];
-    let mut ss = f.chars().collect::<Vec<char>>();
+    let ss = f.trim().chars().collect::<Vec<char>>();
     
     for mv in ss {
         let (dx, dy) = match mv {
@@ -154,21 +127,7 @@ pub fn gen(seed: u64) -> Input {
     input
 }
 
-fn can_move(N: usize, h: &Vec<Vec<char>>, v: &Vec<Vec<char>>, i: usize, j: usize, dir: usize) -> bool {
-    let (di, dj) = DIJ[dir];
-    let i2 = i + di;
-    let j2 = j + dj;
-    if i2 >= N || j2 >= N {
-        return false;
-    }
-    if di == 0 {
-        v[i][j.min(j2)] == '0'
-    } else {
-        h[i.min(i2)][j] == '0'
-    }
-}
-
-pub fn compute_score(input: &Input, out: &Output) -> (i64, String) {
+pub fn compute_score(out: &Output) -> (i64, String) {
     let score = out.acc.len() as i64;
     (score, "".to_string())
 }
@@ -232,9 +191,8 @@ pub fn arrow(x1: usize, y1: usize, x2: usize, y2: usize, color: &str) -> Line {
 }
 
 pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String, String, String) {
-    let (score, err) = compute_score(input, output);
+    let (score, err) = compute_score(output);
     let (pos, vel, lines, visited) = compute_state(input, output, turn);
-    let all_visited = visited.iter().all(|&v| v);
 
     // max(abs(x), abs(y)) を描画範囲に
     let mut draw_range = 1;
@@ -283,7 +241,7 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String,
     // targets
     for i in 0..input.target.len() {
         let (x, y) = to_canvas_pos(input.target[i].0, input.target[i].1, dot_per_unit, W);
-        let mut grp = group(format!("({}, {})", x, y));
+        let mut grp = group(format!("({}, {})", input.target[i].0, input.target[i].1));
         let color = if visited[i] { "cyan" } else { "red" };
         grp = grp.add(
             Circle::new()
