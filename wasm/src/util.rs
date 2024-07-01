@@ -204,6 +204,7 @@ pub fn vis(input: &Input, output: &Output, turn: usize) -> (i64, String, String,
         draw_range.setmax(x.abs());
         draw_range.setmax(y.abs());
     });
+    draw_range = draw_range * 6 / 5;
 
     let W = 800;
     let H = 800;
